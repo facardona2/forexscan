@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FOREXSCAN v4.3 — Scanner FX Profesional</title>
+<title>FOREXSCAN v4.4 — Scanner FX Profesional</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -275,7 +275,7 @@ footer span{color:var(--accent);}
       <div class="logo-icon">FX</div>
       <div>
         <div class="logo-text">FOREX<span>SCAN</span></div>
-        <div class="logo-sub">v4.3 · SCANNER FX + TRADINGVIEW LIVE</div>
+        <div class="logo-sub">v4.4 · SCANNER FX + TRADINGVIEW LIVE</div>
       </div>
     </div>
     <div class="session-bar">
@@ -448,7 +448,7 @@ footer span{color:var(--accent);}
 </div>
 
 <footer>
-  FOREXSCAN v4.3 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
+  FOREXSCAN v4.4 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
 </footer>
 </div>
 
@@ -939,95 +939,106 @@ function checkApiKey(){if(API_KEY){document.getElementById('apiBanner').classLis
 // ════════════════════════════════════════════════
 // FETCH
 // ════════════════════════════════════════════════
-// ─── FETCH CON MÚLTIPLES FUENTES (CORS-friendly) ────────────────
-// Fuente 1: ExchangeRate-API (gratis, sin key, CORS OK)
-// Fuente 2: Frankfurter.app (gratis, sin key, CORS OK)  
-// Fuente 3: Demo con precios 2025 actualizados
+// ─── FETCH DE PRECIOS EN VIVO ────────────────────────────────────
+// 3 fuentes con CORS abierto, sin API key, caída automática
+// Fuente A: open.er-api.com  (CORS *, actualiza cada hora)
+// Fuente B: fawazahmed0 CDN  (CORS *, jsdelivr, claves en minúscula)
+// Fuente C: frankfurter.app  (CORS *, BCE Europa)
+// Fuente D: Demo local       (siempre disponible)
 
-async function fetchFromExchangeRateAPI() {
-  // Returns USD-based rates, then we derive all pairs
-  const url = 'https://api.exchangerate-api.com/v4/latest/USD';
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('ExchangeRate-API HTTP ' + resp.status);
-  const data = await resp.json();
-  if (!data.rates) throw new Error('No rates');
-  return data.rates; // { EUR: 0.91, GBP: 0.78, JPY: 149.2, ... }
-}
-
-async function fetchFromFrankfurter() {
-  const url = 'https://api.frankfurter.app/latest?from=USD';
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('Frankfurter HTTP ' + resp.status);
-  const data = await resp.json();
-  if (!data.rates) throw new Error('No rates');
-  return data.rates;
-}
-
-function ratesToPairs(rates) {
-  // rates is { EUR: x, GBP: x, JPY: x, CHF: x, AUD: x, CAD: x, NZD: x }
-  // Derive all pair prices from USD base
-  const r = rates;
-  const get = code => r[code] || null;
-
-  const EUR = get('EUR'), GBP = get('GBP'), JPY = get('JPY');
-  const CHF = get('CHF'), AUD = get('AUD'), CAD = get('CAD'), NZD = get('NZD');
-
-  if (!EUR || !GBP || !JPY) return null;
-
-  // All prices: how many quote per 1 base
+function buildPricesFromRates(rates, lowercase) {
+  // rates = { EUR: 0.91, GBP: 0.79, JPY: 149.2, CHF: 0.89, AUD: 1.55, CAD: 1.38, NZD: 1.69 }
+  // OR lowercase: { eur: 0.91, gbp: 0.79, ... }
+  const g = code => {
+    const val = rates[lowercase ? code.toLowerCase() : code];
+    return val ? parseFloat(val) : null;
+  };
+  const EUR=g('EUR'), GBP=g('GBP'), JPY=g('JPY');
+  const CHF=g('CHF'), AUD=g('AUD'), CAD=g('CAD'), NZD=g('NZD');
+  if (!EUR || !GBP || !JPY || !CHF) return null;
   return {
-    'EUR/USD': parseFloat((1 / EUR).toFixed(5)),
-    'GBP/USD': parseFloat((1 / GBP).toFixed(5)),
-    'USD/JPY': parseFloat((JPY).toFixed(3)),
-    'USD/CHF': parseFloat((CHF).toFixed(5)),
-    'AUD/USD': parseFloat((1 / AUD).toFixed(5)),
-    'USD/CAD': parseFloat((CAD).toFixed(5)),
-    'NZD/USD': parseFloat((1 / NZD).toFixed(5)),
-    'EUR/GBP': parseFloat((GBP / EUR).toFixed(5)),
-    'EUR/JPY': parseFloat((JPY / EUR).toFixed(3)),
-    'GBP/JPY': parseFloat((JPY / GBP).toFixed(3)),
+    'EUR/USD': parseFloat((1/EUR).toFixed(5)),
+    'GBP/USD': parseFloat((1/GBP).toFixed(5)),
+    'USD/JPY': parseFloat((JPY*1).toFixed(3)),
+    'USD/CHF': parseFloat((CHF*1).toFixed(5)),
+    'AUD/USD': AUD ? parseFloat((1/AUD).toFixed(5)) : null,
+    'USD/CAD': CAD ? parseFloat((CAD*1).toFixed(5)) : null,
+    'NZD/USD': NZD ? parseFloat((1/NZD).toFixed(5)) : null,
+    'EUR/GBP': parseFloat((GBP/EUR).toFixed(5)),
+    'EUR/JPY': parseFloat((JPY/EUR).toFixed(3)),
+    'GBP/JPY': parseFloat((JPY/GBP).toFixed(3)),
   };
 }
 
+async function tryFetch(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 7000);
+  try {
+    const resp = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  } catch(e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
 async function fetchAll() {
-  let rates = null;
+  let prices = null;
   let source = '';
 
-  // Try fuente 1
-  try {
-    rates = await fetchFromExchangeRateAPI();
-    source = 'ExchangeRate-API';
-  } catch(e1) {
-    console.warn('Fuente 1 falló:', e1.message);
-    // Try fuente 2
+  // FUENTE A: open.er-api.com — CORS *, free, no key
+  if (!prices) {
     try {
-      rates = await fetchFromFrankfurter();
-      source = 'Frankfurter';
-    } catch(e2) {
-      console.warn('Fuente 2 falló:', e2.message);
-    }
+      const data = await tryFetch('https://open.er-api.com/v6/latest/USD');
+      if (data && data.rates) {
+        prices = buildPricesFromRates(data.rates, false);
+        if (prices) source = 'open.er-api.com';
+      }
+    } catch(e) { console.warn('Fuente A falló:', e.message); }
   }
 
-  if (!rates) {
+  // FUENTE B: fawazahmed0 via jsdelivr CDN — CORS *, lowercase keys
+  if (!prices) {
+    try {
+      const data = await tryFetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+      if (data && data.usd) {
+        prices = buildPricesFromRates(data.usd, true);
+        if (prices) source = 'CurrencyAPI CDN';
+      }
+    } catch(e) { console.warn('Fuente B falló:', e.message); }
+  }
+
+  // FUENTE C: frankfurter.app — Banco Central Europeo
+  if (!prices) {
+    try {
+      const data = await tryFetch('https://api.frankfurter.app/latest?from=USD');
+      if (data && data.rates) {
+        prices = buildPricesFromRates(data.rates, false);
+        if (prices) source = 'Frankfurter (BCE)';
+      }
+    } catch(e) { console.warn('Fuente C falló:', e.message); }
+  }
+
+  // FUENTE D: fallback demo
+  if (!prices) {
     console.warn('Todas las fuentes fallaron — usando demo');
     renderDemoData();
     return;
   }
 
-  const prices = ratesToPairs(rates);
-  if (!prices) { renderDemoData(); return; }
-
+  // Build data array
   const arr = [];
   for (const p of PAIRS) {
     const sym = p.symbol;
     const price = prices[sym];
     if (!price || isNaN(price)) continue;
 
-    const prev = priceCache[sym] || price;
-    // Use previous close from cache; first load uses DEMO_BASE as reference
-    const ref = priceCache[sym] ? priceCache[sym] : (DEMO_BASE[sym] || price);
-    const change = price - ref;
-    const changePct = ref ? (change / ref) * 100 : 0;
+    // Change vs previous cached price (or 0 on first load)
+    const prevPrice = priceCache[sym] || price;
+    const change    = price - prevPrice;
+    const changePct = prevPrice ? (change / prevPrice) * 100 : 0;
 
     if (!priceHistory[sym]) priceHistory[sym] = [];
     priceHistory[sym].push(price);
@@ -1039,8 +1050,10 @@ async function fetchAll() {
 
   if (arr.length > 0) {
     renderTable(arr);
+    const now = new Date();
+    const utc = `${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')} UTC`;
     document.getElementById('lastUpdateLabel').textContent =
-      `✅ Datos en vivo · ${source} · ${new Date().toUTCString().slice(17,22)} UTC`;
+      `✅ En vivo · ${source} · ${utc}`;
   } else {
     renderDemoData();
   }
