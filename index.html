@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FOREXSCAN v3.0 — Scanner FX Profesional</title>
+<title>FOREXSCAN v4.3 — Scanner FX Profesional</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -190,7 +190,7 @@ td.c{text-align:center;}
 ══════════════════════════════════ */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.25s;}
 .modal-overlay.open{opacity:1;pointer-events:all;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:900px;max-height:90vh;overflow-y:auto;position:relative;transform:translateY(20px);transition:transform 0.25s;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:1100px;max-height:90vh;overflow-y:auto;position:relative;transform:translateY(20px);transition:transform 0.25s;}
 .modal-overlay.open .modal{transform:translateY(0);}
 .modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:10;border-radius:14px 14px 0 0;}
 .modal-pair{font-family:var(--font-display);font-size:28px;font-weight:700;letter-spacing:3px;color:var(--text-bright);}
@@ -224,9 +224,29 @@ td.c{text-align:center;}
 
 /* CHART AREA */
 .chart-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;}
-.chart-title{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.chart-title{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between;}
 .chart-badge{padding:2px 8px;border-radius:3px;font-size:9px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);color:var(--accent);}
 #modalCandleChart{width:100%;display:block;}
+
+
+/* TF selector */
+.tf-selector{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.tf-btn{background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--text-dim);padding:4px 11px;border-radius:4px;font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}
+.tf-btn:hover,.tf-btn.active{background:rgba(0,212,255,0.18);border-color:var(--accent);color:var(--accent);}
+/* TV Panel */
+.tv-panel-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;}
+.tv-panel-title{font-family:var(--font-display);font-size:15px;letter-spacing:3px;color:var(--text-bright);margin-bottom:6px;}
+.tv-panel-sub{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-bottom:16px;letter-spacing:1px;}
+.tv-pair-selector{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.tv-pair-btn{background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);color:var(--text-dim);padding:6px 13px;border-radius:5px;font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;}
+.tv-pair-btn:hover{border-color:rgba(0,212,255,0.4);color:var(--text);}
+.tv-pair-btn.active{background:rgba(0,212,255,0.15);border-color:var(--accent);color:var(--accent);}
+.tv-tf-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.tv-tf-label{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:1px;}
+.tv-chart-wrap{border-radius:8px;overflow:hidden;background:#131722;min-height:560px;}
+.tv-note{font-family:var(--font-mono);font-size:9px;color:var(--text-dim);text-align:center;padding:8px;letter-spacing:1px;}
+.modal-tv-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;} #modalTVchart{min-height:420px;border-radius:8px;overflow:hidden;background:#131722;}
+.modal-tv-wrap{border-radius:8px;overflow:hidden;background:#131722;min-height:420px;}
 
 /* ICT LEVELS */
 .ict-levels{display:flex;flex-direction:column;gap:6px;}
@@ -255,7 +275,7 @@ footer span{color:var(--accent);}
       <div class="logo-icon">FX</div>
       <div>
         <div class="logo-text">FOREX<span>SCAN</span></div>
-        <div class="logo-sub">v3.0 · SCANNER FX PROFESIONAL · MAJORS</div>
+        <div class="logo-sub">v4.3 · SCANNER FX + TRADINGVIEW LIVE</div>
       </div>
     </div>
     <div class="session-bar">
@@ -282,6 +302,7 @@ footer span{color:var(--accent);}
   <div class="tabs-inner">
     <button class="tab-btn active" onclick="showTab('scanner',this)">◈ SCANNER</button>
     <button class="tab-btn" onclick="showTab('heatmap',this)">⊡ MAPA DE CALOR</button>
+    <button class="tab-btn" onclick="showTab('graficos',this)">📈 GRÁFICOS TV</button>
     <button class="tab-btn" onclick="showTab('correlacion',this)">⊞ CORRELACIÓN</button>
   </div>
 </div>
@@ -323,6 +344,27 @@ footer span{color:var(--accent);}
       <div class="heatmap-title">▸ MAPA DE CALOR FOREX</div>
       <div class="heatmap-sub">Rendimiento del día · CLIC EN CUALQUIER PAR PARA VER ANÁLISIS COMPLETO</div>
       <div class="heatmap-grid" id="heatmapGrid"></div>
+    </div>
+  </div>
+
+
+  <!-- GRAFICOS TRADINGVIEW -->
+  <div class="panel" id="panel-graficos">
+    <div class="tv-panel-wrap">
+      <div class="tv-panel-title">▸ GRÁFICOS TRADINGVIEW · EN VIVO</div>
+      <div class="tv-panel-sub">Selecciona par y timeframe · Datos reales de TradingView · Se abre directo en la página</div>
+      <div class="tv-pair-selector" id="tvPairSelector"></div>
+      <div class="tv-tf-row">
+        <span class="tv-tf-label">TIMEFRAME:</span>
+        <button class="tf-btn" onclick="setTVtf('1',this)">1M</button>
+        <button class="tf-btn" onclick="setTVtf('5',this)">5M</button>
+        <button class="tf-btn" onclick="setTVtf('15',this)">15M</button>
+        <button class="tf-btn active" onclick="setTVtf('60',this)">1H</button>
+        <button class="tf-btn" onclick="setTVtf('240',this)">4H</button>
+        <button class="tf-btn" onclick="setTVtf('D',this)">1D</button>
+      </div>
+      <div class="tv-chart-wrap" id="tvMainChart"></div>
+      <div class="tv-note">⚡ Powered by TradingView · Gráfico interactivo en tiempo real</div>
     </div>
   </div>
 
@@ -368,13 +410,20 @@ footer span{color:var(--accent);}
         </div>
       </div>
 
-      <!-- GRÁFICO DE VELAS -->
-      <div class="chart-section">
-        <div class="chart-title">
-          GRÁFICO DE VELAS · SIMULACIÓN INTRADÍA
-          <span class="chart-badge">15 VELAS</span>
+      <!-- GRÁFICO TRADINGVIEW EN MODAL -->
+      <div class="modal-tv-section">
+        <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <span>📈 GRÁFICO EN VIVO · TRADINGVIEW <span class="chart-badge" id="mTVbadge">1H</span></span>
+          <div class="tf-selector">
+            <button class="tf-btn" onclick="setModalTF('1',this)">1M</button>
+            <button class="tf-btn" onclick="setModalTF('5',this)">5M</button>
+            <button class="tf-btn" onclick="setModalTF('15',this)">15M</button>
+            <button class="tf-btn active" onclick="setModalTF('60',this)">1H</button>
+            <button class="tf-btn" onclick="setModalTF('240',this)">4H</button>
+            <button class="tf-btn" onclick="setModalTF('D',this)">1D</button>
+          </div>
         </div>
-        <svg id="modalCandleChart" height="200" viewBox="0 0 860 200"></svg>
+        <div class="modal-tv-wrap" id="modalTVchart"></div>
       </div>
 
       <!-- DATOS + NIVELES ICT -->
@@ -399,7 +448,7 @@ footer span{color:var(--accent);}
 </div>
 
 <footer>
-  FOREXSCAN v3.0 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
+  FOREXSCAN v4.3 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
 </footer>
 </div>
 
@@ -704,7 +753,16 @@ function openModal(symbol){
   document.getElementById('mSignalStr').textContent=sig.strength+'%';
 
   // Candle chart
-  drawModalCandles(symbol,price,changePct);
+  // Inject TradingView widget
+  currentModalSym = symbol;
+  currentModalTF = '60';
+  // Reset TF buttons
+  document.querySelectorAll('.modal-tv-section .tf-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === '1H');
+  });
+  document.getElementById('mTVbadge').textContent = '1H';
+  // Build after small delay so modal is visible
+  setTimeout(() => buildTVWidget('modalTVchart', symbol, '60', 420), 80);
 
   // Stats
   const statsHTML=`
@@ -869,6 +927,7 @@ function showTab(name,btn){
   document.getElementById('panel-'+name).classList.add('active');
   btn.classList.add('active');
   if(name==='correlacion')renderCorrelation();
+  if(name==='graficos')initTVPanel();
 }
 
 // ════════════════════════════════════════════════
@@ -880,45 +939,131 @@ function checkApiKey(){if(API_KEY){document.getElementById('apiBanner').classLis
 // ════════════════════════════════════════════════
 // FETCH
 // ════════════════════════════════════════════════
-async function fetchAll(){
-  if(!API_KEY){renderDemoData();return;}
-  try{
-    const symbols=PAIRS.map(p=>p.symbol).join(',');
-    const[pR,qR]=await Promise.all([
-      fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(symbols)}&apikey=${API_KEY}`).then(r=>r.json()),
-      fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbols)}&apikey=${API_KEY}`).then(r=>r.json()),
-    ]);
-    const arr=[];
-    for(const p of PAIRS){
-      const sym=p.symbol;
-      try{
-        const pd=pR[sym]||pR,qd=qR[sym]||qR;
-        const price=parseFloat(pd?.price||qd?.close||0);
-        if(!price||isNaN(price))throw new Error();
-        const prev=parseFloat(qd?.previous_close||qd?.open||price);
-        const change=price-prev,changePct=prev?(change/prev)*100:0;
-        if(!priceHistory[sym])priceHistory[sym]=[];
-        priceHistory[sym].push(price);if(priceHistory[sym].length>20)priceHistory[sym].shift();
-        priceCache[sym]=price;arr.push({symbol:sym,price,change,changePct});
-      }catch(e){const c=priceCache[sym];if(c){const price=c*(1+(Math.random()-0.5)*0.0005);arr.push({symbol:sym,price,change:price-c,changePct:((price-c)/c)*100});}}
-    }
-    if(arr.length>0)renderTable(arr);else renderDemoData();
-  }catch(e){console.error(e);renderDemoData();}
+// ─── FETCH CON MÚLTIPLES FUENTES (CORS-friendly) ────────────────
+// Fuente 1: ExchangeRate-API (gratis, sin key, CORS OK)
+// Fuente 2: Frankfurter.app (gratis, sin key, CORS OK)  
+// Fuente 3: Demo con precios 2025 actualizados
+
+async function fetchFromExchangeRateAPI() {
+  // Returns USD-based rates, then we derive all pairs
+  const url = 'https://api.exchangerate-api.com/v4/latest/USD';
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('ExchangeRate-API HTTP ' + resp.status);
+  const data = await resp.json();
+  if (!data.rates) throw new Error('No rates');
+  return data.rates; // { EUR: 0.91, GBP: 0.78, JPY: 149.2, ... }
 }
+
+async function fetchFromFrankfurter() {
+  const url = 'https://api.frankfurter.app/latest?from=USD';
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('Frankfurter HTTP ' + resp.status);
+  const data = await resp.json();
+  if (!data.rates) throw new Error('No rates');
+  return data.rates;
+}
+
+function ratesToPairs(rates) {
+  // rates is { EUR: x, GBP: x, JPY: x, CHF: x, AUD: x, CAD: x, NZD: x }
+  // Derive all pair prices from USD base
+  const r = rates;
+  const get = code => r[code] || null;
+
+  const EUR = get('EUR'), GBP = get('GBP'), JPY = get('JPY');
+  const CHF = get('CHF'), AUD = get('AUD'), CAD = get('CAD'), NZD = get('NZD');
+
+  if (!EUR || !GBP || !JPY) return null;
+
+  // All prices: how many quote per 1 base
+  return {
+    'EUR/USD': parseFloat((1 / EUR).toFixed(5)),
+    'GBP/USD': parseFloat((1 / GBP).toFixed(5)),
+    'USD/JPY': parseFloat((JPY).toFixed(3)),
+    'USD/CHF': parseFloat((CHF).toFixed(5)),
+    'AUD/USD': parseFloat((1 / AUD).toFixed(5)),
+    'USD/CAD': parseFloat((CAD).toFixed(5)),
+    'NZD/USD': parseFloat((1 / NZD).toFixed(5)),
+    'EUR/GBP': parseFloat((GBP / EUR).toFixed(5)),
+    'EUR/JPY': parseFloat((JPY / EUR).toFixed(3)),
+    'GBP/JPY': parseFloat((JPY / GBP).toFixed(3)),
+  };
+}
+
+async function fetchAll() {
+  let rates = null;
+  let source = '';
+
+  // Try fuente 1
+  try {
+    rates = await fetchFromExchangeRateAPI();
+    source = 'ExchangeRate-API';
+  } catch(e1) {
+    console.warn('Fuente 1 falló:', e1.message);
+    // Try fuente 2
+    try {
+      rates = await fetchFromFrankfurter();
+      source = 'Frankfurter';
+    } catch(e2) {
+      console.warn('Fuente 2 falló:', e2.message);
+    }
+  }
+
+  if (!rates) {
+    console.warn('Todas las fuentes fallaron — usando demo');
+    renderDemoData();
+    return;
+  }
+
+  const prices = ratesToPairs(rates);
+  if (!prices) { renderDemoData(); return; }
+
+  const arr = [];
+  for (const p of PAIRS) {
+    const sym = p.symbol;
+    const price = prices[sym];
+    if (!price || isNaN(price)) continue;
+
+    const prev = priceCache[sym] || price;
+    // Use previous close from cache; first load uses DEMO_BASE as reference
+    const ref = priceCache[sym] ? priceCache[sym] : (DEMO_BASE[sym] || price);
+    const change = price - ref;
+    const changePct = ref ? (change / ref) * 100 : 0;
+
+    if (!priceHistory[sym]) priceHistory[sym] = [];
+    priceHistory[sym].push(price);
+    if (priceHistory[sym].length > 20) priceHistory[sym].shift();
+    priceCache[sym] = price;
+
+    arr.push({ symbol: sym, price, change, changePct });
+  }
+
+  if (arr.length > 0) {
+    renderTable(arr);
+    document.getElementById('lastUpdateLabel').textContent =
+      `✅ Datos en vivo · ${source} · ${new Date().toUTCString().slice(17,22)} UTC`;
+  } else {
+    renderDemoData();
+  }
+}
+
 
 function renderDemoData(){
   const arr=PAIRS.map(p=>{
-    const sym=p.symbol,base=DEMO_BASE[sym]||1;
+    const sym=p.symbol;
+    const base=DEMO_BASE[sym]||1;
     const prev=priceCache[sym]||base;
-    const drift=(Math.random()-0.5)*0.0004*(isJPY(sym)?100:1);
+    const drift=(Math.random()-0.5)*0.0003*(isJPY(sym)?100:1);
     const price=parseFloat((prev+drift).toFixed(isJPY(sym)?3:5));
     if(!priceHistory[sym])priceHistory[sym]=[base];
-    priceHistory[sym].push(price);if(priceHistory[sym].length>20)priceHistory[sym].shift();
+    priceHistory[sym].push(price);
+    if(priceHistory[sym].length>20)priceHistory[sym].shift();
     priceCache[sym]=price;
-    return{symbol:sym,price,change:price-base,changePct:((price-base)/base)*100};
+    const change=price-base;
+    const changePct=(change/base)*100;
+    return{symbol:sym,price,change,changePct};
   });
   renderTable(arr);
-  document.getElementById('lastUpdateLabel').textContent='⚠ MODO DEMO — Conecta API Key para datos reales';
+  document.getElementById('lastUpdateLabel').textContent='⚠ API sin conexión — mostrando precios de referencia';
 }
 
 // ════════════════════════════════════════════════
@@ -942,6 +1087,115 @@ function init(){
   });
   checkApiKey();setInterval(updateClock,1000);updateClock();fetchAll();setInterval(fetchAll,REFRESH_MS);
 }
+
+// ════════════════════════════════════════════════
+// TRADINGVIEW INTEGRATION
+// ════════════════════════════════════════════════
+// Convert pair symbol to TradingView format
+function toTVsymbol(sym) {
+  // TradingView uses FX:EURUSD format
+  return 'FX:' + sym.replace('/', '');
+}
+
+let currentModalTF = '60';
+let currentModalSym = 'EUR/USD';
+let currentTVtf = '60';
+let currentTVsym = 'EUR/USD';
+
+function buildTVWidget(containerId, symbol, interval, height) {
+  const tvsym = toTVsymbol(symbol);
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  // Clear previous widget cleanly
+  container.innerHTML = '';
+  container.style.height = height + 'px';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'tradingview-widget-container';
+  wrap.style.height = height + 'px';
+  wrap.style.width = '100%';
+
+  const inner = document.createElement('div');
+  inner.className = 'tradingview-widget-container__widget';
+  inner.style.height = '100%';
+  inner.style.width = '100%';
+  wrap.appendChild(inner);
+
+  const script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async = true;
+  // TradingView reads config from script innerHTML
+  script.innerHTML = JSON.stringify({
+    autosize: true,
+    symbol: tvsym,
+    interval: interval,
+    timezone: "UTC",
+    theme: "dark",
+    style: "1",
+    locale: "es",
+    backgroundColor: "rgba(13,20,32,1)",
+    gridColor: "rgba(26,46,69,0.5)",
+    hide_top_toolbar: false,
+    hide_legend: false,
+    save_image: false,
+    calendar: false,
+    hide_volume: false,
+    support_host: "https://www.tradingview.com",
+    width: "100%",
+    height: height
+  });
+  wrap.appendChild(script);
+  container.appendChild(wrap);
+}
+
+// Modal TF change
+function setModalTF(tf, btn) {
+  currentModalTF = tf;
+  document.querySelectorAll('.modal-tv-section .tf-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('mTVbadge').textContent = tfLabel(tf);
+  buildTVWidget('modalTVchart', currentModalSym, tf, 420);
+}
+
+// Panel TV tf change
+function setTVtf(tf, btn) {
+  currentTVtf = tf;
+  document.querySelectorAll('.tv-tf-row .tf-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  buildTVWidget('tvMainChart', currentTVsym, tf, 560);
+}
+
+function tfLabel(tf) {
+  const m = {'1':'1M','5':'5M','15':'15M','60':'1H','240':'4H','D':'1D'};
+  return m[tf] || tf;
+}
+
+// Build pair selector buttons for TV panel
+function buildTVPairSelector() {
+  const sel = document.getElementById('tvPairSelector');
+  if (!sel) return;
+  sel.innerHTML = '';
+  PAIRS.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tv-pair-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = p.symbol;
+    btn.onclick = function() {
+      currentTVsym = p.symbol;
+      document.querySelectorAll('.tv-pair-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      buildTVWidget('tvMainChart', p.symbol, currentTVtf, 560);
+    };
+    sel.appendChild(btn);
+  });
+}
+
+// Called when TV tab opens
+function initTVPanel() {
+  buildTVPairSelector();
+  buildTVWidget('tvMainChart', currentTVsym, currentTVtf, 560);
+}
+
 document.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
