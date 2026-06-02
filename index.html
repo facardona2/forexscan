@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FOREXSCAN v4.6 — Scanner FX Profesional</title>
+<title>FOREXSCAN v4.7 — Scanner FX Profesional</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -275,7 +275,7 @@ footer span{color:var(--accent);}
       <div class="logo-icon">FX</div>
       <div>
         <div class="logo-text">FOREX<span>SCAN</span></div>
-        <div class="logo-sub">v4.6 · SCANNER FX + TRADINGVIEW LIVE</div>
+        <div class="logo-sub">v4.7 · SCANNER FX + DIBUJO TV</div>
       </div>
     </div>
     <div class="session-bar">
@@ -448,7 +448,7 @@ footer span{color:var(--accent);}
 </div>
 
 <footer>
-  FOREXSCAN v4.6 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
+  FOREXSCAN v4.7 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
 </footer>
 </div>
 
@@ -1149,11 +1149,26 @@ function buildTVWidget(containerId, symbol, interval, height) {
     locale: "es",
     backgroundColor: "rgba(13,20,32,1)",
     gridColor: "rgba(26,46,69,0.5)",
-    hide_top_toolbar: false,
+    // === BARRA DE HERRAMIENTAS DE DIBUJO ===
+    hide_side_toolbar: false,        // Muestra panel lateral de dibujo
+    hide_top_toolbar: false,          // Muestra barra superior
     hide_legend: false,
-    save_image: false,
-    calendar: false,
     hide_volume: false,
+    withdateranges: true,             // Selector de rangos de fecha
+    allow_symbol_change: true,        // Permite cambiar símbolo dentro del widget
+    save_image: true,                 // Permite guardar imagen del gráfico
+    show_popup_button: true,          // Botón para abrir en ventana grande
+    popup_width: "1200",
+    popup_height: "700",
+    details: true,                    // Panel de detalles del par
+    hotlist: false,
+    calendar: false,
+    studies: [                        // Indicadores precargados
+      "STD;RSI",
+      "STD;MACD",
+      "STD;EMA"
+    ],
+    container_id: "tv_chart_container",
     support_host: "https://www.tradingview.com",
     width: "100%",
     height: height
