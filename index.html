@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FOREXSCAN v5.0 — Scanner FX Profesional</title>
+<title>FOREXSCAN v5.1 — Scanner FX Profesional</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -353,7 +353,7 @@ footer span{color:var(--accent);}
       <div class="logo-icon">FX</div>
       <div>
         <div class="logo-text">FOREX<span>SCAN</span></div>
-        <div class="logo-sub">v5.0 · SCANNER FX + ALERTAS</div>
+        <div class="logo-sub">v5.1 · PRECIOS LIVE TRADINGVIEW</div>
       </div>
     </div>
     <div class="session-bar">
@@ -383,6 +383,7 @@ footer span{color:var(--accent);}
 <div class="tabs-bar">
   <div class="tabs-inner">
     <button class="tab-btn active" onclick="showTab('scanner',this)">◈ SCANNER</button>
+    <button class="tab-btn" onclick="showTab('live',this)">⚡ PRECIOS LIVE</button>
     <button class="tab-btn" onclick="showTab('heatmap',this)">⊡ MAPA DE CALOR</button>
     <button class="tab-btn" onclick="showTab('graficos',this)">📈 GRÁFICOS TV</button>
     <button class="tab-btn" onclick="showTab('correlacion',this)">⊞ CORRELACIÓN</button>
@@ -398,10 +399,13 @@ footer span{color:var(--accent);}
     <div class="stat-card c5"><div class="stat-label">ÚLTIMA ACT.</div><div class="stat-value sm" id="statUpdate">—</div></div>
   </div>
 
+  <!-- LIVE TICKER TAPE - ALWAYS VISIBLE -->
+  <div id="tvTickerTapeMain" style="margin-bottom:18px;min-height:48px;border-radius:8px;overflow:hidden;background:#131722;border:1px solid var(--border);"></div>
+
   <!-- SCANNER -->
   <div class="panel active" id="panel-scanner">
     <div class="table-header-row">
-      <div class="table-title">▸ MAJORS FX · CLIC EN PAR PARA ANÁLISIS COMPLETO</div>
+      <div class="table-title">▸ ANÁLISIS ICT/CRT · CLIC EN PAR PARA DETALLE</div>
       <div class="last-update" id="lastUpdateLabel">Actualizando cada 60s</div>
     </div>
     <div class="table-wrap">
@@ -417,6 +421,23 @@ footer span{color:var(--accent);}
         </thead>
         <tbody id="fxTableBody"></tbody>
       </table>
+    </div>
+  </div>
+
+
+  <!-- LIVE PRICES via TRADINGVIEW -->
+  <div class="panel" id="panel-live">
+    <div class="tv-panel-wrap">
+      <div class="tv-panel-title">▸ PRECIOS EN VIVO · DIRECTO DE TRADINGVIEW</div>
+      <div class="tv-panel-sub">⚡ Datos reales tick por tick · Actualización en milisegundos · Igual que en MetaTrader o el broker</div>
+      <div id="tvForexCrossRates" style="min-height:500px;border-radius:8px;overflow:hidden;background:#131722;margin-bottom:14px;"></div>
+      <div class="tv-note">⚡ Estos son los precios REALES del mercado spot · Powered by TradingView</div>
+    </div>
+    <br>
+    <div class="tv-panel-wrap">
+      <div class="tv-panel-title">▸ CINTA DE PARES · MOVIMIENTO MINUTO A MINUTO</div>
+      <div class="tv-panel-sub">Visión rápida de todos los majors con cambio % del día</div>
+      <div id="tvTickerTape" style="min-height:80px;border-radius:8px;overflow:hidden;background:#131722;"></div>
     </div>
   </div>
 
@@ -531,7 +552,7 @@ footer span{color:var(--accent);}
 
 <div class="toast-stack" id="toastStack"></div>
 <footer>
-  FOREXSCAN v5.0 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
+  FOREXSCAN v5.1 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
 </footer>
 </div>
 
@@ -1013,6 +1034,7 @@ function showTab(name,btn){
   btn.classList.add('active');
   if(name==='correlacion')renderCorrelation();
   if(name==='graficos')initTVPanel();
+  if(name==='live')initLivePanel();
 }
 
 // ════════════════════════════════════════════════
@@ -1185,6 +1207,129 @@ function init(){
   });
   checkApiKey();setInterval(updateClock,1000);updateClock();fetchAll();setInterval(fetchAll,REFRESH_MS);
   updateAlertButton();
+  // Cinta de TradingView siempre visible con precios reales
+  setTimeout(buildTickerTapeMain, 200);
+}
+
+
+// ════════════════════════════════════════════════
+// TRADINGVIEW LIVE PRICES (forex cross rates + ticker)
+// ════════════════════════════════════════════════
+
+function buildTickerTapeMain() {
+  const container = document.getElementById('tvTickerTapeMain');
+  if (!container) return;
+  container.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'tradingview-widget-container';
+  wrap.style.width = '100%';
+  const inner = document.createElement('div');
+  inner.className = 'tradingview-widget-container__widget';
+  wrap.appendChild(inner);
+  const script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    symbols: [
+      { proName: 'FX:EURUSD', title: 'EUR/USD' },
+      { proName: 'FX:GBPUSD', title: 'GBP/USD' },
+      { proName: 'FX:USDJPY', title: 'USD/JPY' },
+      { proName: 'FX:USDCHF', title: 'USD/CHF' },
+      { proName: 'FX:AUDUSD', title: 'AUD/USD' },
+      { proName: 'FX:USDCAD', title: 'USD/CAD' },
+      { proName: 'FX:NZDUSD', title: 'NZD/USD' },
+      { proName: 'FX:EURGBP', title: 'EUR/GBP' },
+      { proName: 'FX:EURJPY', title: 'EUR/JPY' },
+      { proName: 'FX:GBPJPY', title: 'GBP/JPY' }
+    ],
+    showSymbolLogo: false,
+    isTransparent: false,
+    displayMode: 'adaptive',
+    colorTheme: 'dark',
+    locale: 'es'
+  });
+  wrap.appendChild(script);
+  container.appendChild(wrap);
+}
+
+function buildForexCrossRatesWidget() {
+  const container = document.getElementById('tvForexCrossRates');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'tradingview-widget-container';
+  wrap.style.height = '500px';
+  wrap.style.width = '100%';
+
+  const inner = document.createElement('div');
+  inner.className = 'tradingview-widget-container__widget';
+  inner.style.height = '100%';
+  inner.style.width = '100%';
+  wrap.appendChild(inner);
+
+  const script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-forex-cross-rates.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    width: '100%',
+    height: 500,
+    currencies: ['EUR','USD','GBP','JPY','CHF','AUD','CAD','NZD'],
+    isTransparent: false,
+    colorTheme: 'dark',
+    locale: 'es',
+    backgroundColor: '#131722'
+  });
+  wrap.appendChild(script);
+  container.appendChild(wrap);
+}
+
+function buildTickerTapeWidget() {
+  const container = document.getElementById('tvTickerTape');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'tradingview-widget-container';
+  wrap.style.width = '100%';
+
+  const inner = document.createElement('div');
+  inner.className = 'tradingview-widget-container__widget';
+  inner.style.width = '100%';
+  wrap.appendChild(inner);
+
+  const script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    symbols: [
+      { proName: 'FX:EURUSD', title: 'EUR/USD' },
+      { proName: 'FX:GBPUSD', title: 'GBP/USD' },
+      { proName: 'FX:USDJPY', title: 'USD/JPY' },
+      { proName: 'FX:USDCHF', title: 'USD/CHF' },
+      { proName: 'FX:AUDUSD', title: 'AUD/USD' },
+      { proName: 'FX:USDCAD', title: 'USD/CAD' },
+      { proName: 'FX:NZDUSD', title: 'NZD/USD' },
+      { proName: 'FX:EURGBP', title: 'EUR/GBP' },
+      { proName: 'FX:EURJPY', title: 'EUR/JPY' },
+      { proName: 'FX:GBPJPY', title: 'GBP/JPY' }
+    ],
+    showSymbolLogo: true,
+    isTransparent: false,
+    displayMode: 'adaptive',
+    colorTheme: 'dark',
+    locale: 'es'
+  });
+  wrap.appendChild(script);
+  container.appendChild(wrap);
+}
+
+function initLivePanel() {
+  buildForexCrossRatesWidget();
+  buildTickerTapeWidget();
 }
 
 // ════════════════════════════════════════════════
