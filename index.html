@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FOREXSCAN v5.3 — Scanner FX Profesional</title>
+<title>FOREXSCAN v6.0 — Scanner FX Profesional</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -353,7 +353,7 @@ footer span{color:var(--accent);}
       <div class="logo-icon">FX</div>
       <div>
         <div class="logo-text">FOREX<span>SCAN</span></div>
-        <div class="logo-sub">v5.3 · TRADINGVIEW LIVE FEED</div>
+        <div class="logo-sub">v6.0 · CLOUDFLARE WORKER LIVE</div>
       </div>
     </div>
     <div class="session-bar">
@@ -552,7 +552,7 @@ footer span{color:var(--accent);}
 
 <div class="toast-stack" id="toastStack"></div>
 <footer>
-  FOREXSCAN v5.3 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
+  FOREXSCAN v6.0 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
 </footer>
 </div>
 
@@ -1086,76 +1086,54 @@ async function tryFetch(url) {
   return Promise.race([fetchPromise, timeoutPromise]);
 }
 
-// ─── TRADINGVIEW SCANNER ENDPOINT ────────────────────────────
-// Endpoint público de TradingView que devuelve precios REAL-TIME
-// Mismos datos que ves en tradingview.com, gratis, sin clave
-async function fetchFromTradingViewScanner() {
-  const url = 'https://scanner.tradingview.com/forex/scan';
-  const body = {
-    symbols: {
-      tickers: PAIRS.map(p => 'FX:' + p.symbol.replace('/', '')),
-      query: { types: [] }
-    },
-    columns: ['name', 'close', 'change', 'change_abs', 'high', 'low', 'open']
-  };
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    mode: 'cors',
-    cache: 'no-store'
-  });
-  if (!resp.ok) throw new Error('TV scanner HTTP ' + resp.status);
-  const data = await resp.json();
-  if (!data || !data.data) throw new Error('TV scanner: respuesta vacía');
+// ─── FETCH VIA CLOUDFLARE WORKER ────────────────────────────
+// El Worker actúa como proxy seguro a TradingView/TwelveData
+// Devuelve precios REAL-TIME con CORS abierto
 
-  const result = {};
-  const dailyOpens = {};
-  data.data.forEach(item => {
-    // item.d = [name, close, change%, change_abs, high, low, open]
-    const tvSym = (item.s || '').replace('FX:', '');
-    // Match back to our format
-    const ourSym = PAIRS.find(p => p.symbol.replace('/', '') === tvSym)?.symbol;
-    if (!ourSym || !item.d) return;
-    const [, close, changePct, , , , open] = item.d;
-    if (close && !isNaN(close)) {
-      result[ourSym] = parseFloat(close);
-      if (open) dailyOpens[ourSym] = parseFloat(open);
-    }
-  });
-  return { prices: result, opens: dailyOpens };
-}
+const WORKER_URL = 'https://forexscan-api.facardona7.workers.dev';
 
 async function fetchAll() {
   let prices = null;
   let tvOpens = null;
+  let tvHighs = null;
+  let tvLows = null;
+  let tvChanges = null;
+  let tvChangePcts = null;
   let source = '';
 
-  // FUENTE A: TradingView Scanner — PRECIOS REAL-TIME REALES
+  // FUENTE PRINCIPAL: nuestro Worker en Cloudflare
   try {
-    const tvData = await fetchFromTradingViewScanner();
-    if (tvData.prices && Object.keys(tvData.prices).length > 0) {
-      prices = tvData.prices;
-      tvOpens = tvData.opens;
-      source = 'TradingView LIVE';
-    }
-  } catch(e) { console.warn('TradingView Scanner falló:', e.message); }
+    const data = await tryFetch(WORKER_URL);
+    if (data && data.pairs && !data.error) {
+      prices = {};
+      tvOpens = {};
+      tvHighs = {};
+      tvLows = {};
+      tvChanges = {};
+      tvChangePcts = {};
 
-  // FUENTE B: Frankfurter como respaldo (datos diarios BCE)
-  if (!prices) {
-    try {
-      const data = await tryFetch('https://api.frankfurter.app/latest?from=USD');
-      if (data && data.rates) {
-        prices = buildPricesFromRates(data.rates, false);
-        if (prices) {
-          source = 'Frankfurter (BCE)';
-          if (data.date) source += ' · ' + data.date;
+      for (const p of PAIRS) {
+        const q = data.pairs[p.symbol];
+        if (q && !q.error && q.price) {
+          prices[p.symbol] = q.price;
+          tvOpens[p.symbol] = q.open || q.previous_close || q.price;
+          tvHighs[p.symbol] = q.high || q.price;
+          tvLows[p.symbol] = q.low || q.price;
+          tvChanges[p.symbol] = q.change || 0;
+          tvChangePcts[p.symbol] = q.percent_change || 0;
         }
       }
-    } catch(e) { console.warn('Frankfurter falló:', e.message); }
-  }
 
-  // FUENTE C: jsDelivr CDN último respaldo
+      if (Object.keys(prices).length >= 5) {
+        source = '⚡ ' + (data.source || 'Worker LIVE');
+        if (data.cached) source += ' (cached ' + Math.round(data.cache_age_ms/1000) + 's)';
+      } else {
+        prices = null;
+      }
+    }
+  } catch(e) { console.warn('Worker falló:', e.message); }
+
+  // FALLBACK: CDN si el Worker falla
   if (!prices) {
     const cdnUrls = [
       'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
@@ -1167,49 +1145,44 @@ async function fetchAll() {
         const data = await tryFetch(url);
         if (data && data.usd) {
           prices = buildPricesFromRates(data.usd, true);
-          if (prices) source = 'CDN jsDelivr';
+          if (prices) {
+            source = 'CDN (respaldo)';
+            if (data.date) source += ' · ' + data.date;
+          }
         }
       } catch(e) { console.warn('CDN falló:', e.message); }
     }
   }
 
-  if (!prices) {
-    console.warn('Todas las fuentes fallaron — usando demo');
-    renderDemoData();
-    return;
-  }
-
-  // Para el cambio del día usar las aperturas reales de TradingView si están disponibles
-  const today = new Date().toISOString().slice(0,10);
-  let dailyOpens = {};
-
-  if (tvOpens && Object.keys(tvOpens).length > 0) {
-    // TradingView nos da el OPEN real del día
-    dailyOpens = tvOpens;
-  } else {
-    // Sin TV: usar localStorage para tracking propio
-    try {
-      const stored = JSON.parse(localStorage.getItem('fx_daily_opens') || '{}');
-      if (stored.date === today) {
-        dailyOpens = stored.opens || {};
-      }
-    } catch(e) { dailyOpens = {}; }
-  }
-
+  // Usar datos del Worker (incluyen open, high, low, change real)
   const arr = [];
   for (const p of PAIRS) {
     const sym = p.symbol;
     const price = prices[sym];
     if (!price || isNaN(price)) continue;
 
-    // Si no tenemos apertura del día, la guardamos ahora
-    if (!dailyOpens[sym]) {
-      dailyOpens[sym] = price;
+    // Si el Worker dio el cambio % real, usarlo directamente
+    let change, changePct;
+    if (tvChangePcts && tvChangePcts[sym] !== undefined) {
+      changePct = tvChangePcts[sym];
+      change = tvChanges[sym] || 0;
+    } else {
+      // Fallback: calcular con apertura del día (localStorage)
+      const today = new Date().toISOString().slice(0,10);
+      let dayOpen = price;
+      try {
+        const stored = JSON.parse(localStorage.getItem('fx_daily_opens') || '{}');
+        if (stored.date === today && stored.opens && stored.opens[sym]) {
+          dayOpen = stored.opens[sym];
+        } else {
+          const newOpens = stored.date === today ? (stored.opens || {}) : {};
+          newOpens[sym] = price;
+          localStorage.setItem('fx_daily_opens', JSON.stringify({date: today, opens: newOpens}));
+        }
+      } catch(e) {}
+      change = price - dayOpen;
+      changePct = dayOpen ? (change / dayOpen) * 100 : 0;
     }
-
-    const dayOpen = dailyOpens[sym];
-    const change    = price - dayOpen;
-    const changePct = dayOpen ? (change / dayOpen) * 100 : 0;
 
     if (!priceHistory[sym]) priceHistory[sym] = [];
     priceHistory[sym].push(price);
@@ -1218,14 +1191,6 @@ async function fetchAll() {
 
     arr.push({ symbol: sym, price, change, changePct });
   }
-
-  // Guardar apertura del día en localStorage para próximas cargas
-  try {
-    localStorage.setItem('fx_daily_opens', JSON.stringify({
-      date: today,
-      opens: dailyOpens
-    }));
-  } catch(e) {}
 
   if (arr.length > 0) {
     renderTable(arr);
