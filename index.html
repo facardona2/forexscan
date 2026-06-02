@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FOREXSCAN v5.1 — Scanner FX Profesional</title>
+<title>FOREXSCAN v5.2 — Scanner FX Profesional</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -353,7 +353,7 @@ footer span{color:var(--accent);}
       <div class="logo-icon">FX</div>
       <div>
         <div class="logo-text">FOREX<span>SCAN</span></div>
-        <div class="logo-sub">v5.1 · PRECIOS LIVE TRADINGVIEW</div>
+        <div class="logo-sub">v5.2 · CAMBIO REAL + PRECIOS LIVE</div>
       </div>
     </div>
     <div class="session-bar">
@@ -406,7 +406,7 @@ footer span{color:var(--accent);}
   <div class="panel active" id="panel-scanner">
     <div class="table-header-row">
       <div class="table-title">▸ ANÁLISIS ICT/CRT · CLIC EN PAR PARA DETALLE</div>
-      <div class="last-update" id="lastUpdateLabel">Actualizando cada 60s</div>
+      <div class="last-update" id="lastUpdateLabel">⚠ Precios LIVE en la cinta superior · Esta tabla usa datos diarios para análisis</div>
     </div>
     <div class="table-wrap">
       <table>
@@ -552,7 +552,7 @@ footer span{color:var(--accent);}
 
 <div class="toast-stack" id="toastStack"></div>
 <footer>
-  FOREXSCAN v5.1 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
+  FOREXSCAN v5.2 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
 </footer>
 </div>
 
@@ -1090,45 +1090,53 @@ async function fetchAll() {
   let prices = null;
   let source = '';
 
-  // FUENTE A: jsDelivr CDN — siempre permite CORS, hosting estático
-  // Endpoint primario y fallback del CDN
-  const cdnUrls = [
-    'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
-    'https://latest.currency-api.pages.dev/v1/currencies/usd.json'
-  ];
-  for (const url of cdnUrls) {
-    if (prices) break;
-    try {
-      const data = await tryFetch(url);
-      if (data && data.usd) {
-        prices = buildPricesFromRates(data.usd, true);
-        if (prices) source = 'CDN jsDelivr';
+  // NOTA IMPORTANTE: Las APIs gratuitas de Forex tienen retraso de 12-24h.
+  // Los precios REALES TIEMPO REAL están en la cinta de TradingView arriba.
+  // Esta tabla usa datos diarios del BCE para análisis ICT/CRT (tendencia, niveles).
+
+  // FUENTE A: Frankfurter (BCE Europa, datos oficiales día)
+  try {
+    const data = await tryFetch('https://api.frankfurter.app/latest?from=USD');
+    if (data && data.rates) {
+      prices = buildPricesFromRates(data.rates, false);
+      if (prices) {
+        source = 'Frankfurter (BCE)';
+        if (data.date) source += ' · ' + data.date;
       }
-    } catch(e) { console.warn('CDN intento falló:', e.message); }
+    }
+  } catch(e) { console.warn('Frankfurter directo falló:', e.message); }
+
+  // FUENTE B: jsDelivr CDN como respaldo
+  if (!prices) {
+    const cdnUrls = [
+      'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
+      'https://latest.currency-api.pages.dev/v1/currencies/usd.json'
+    ];
+    for (const url of cdnUrls) {
+      if (prices) break;
+      try {
+        const data = await tryFetch(url);
+        if (data && data.usd) {
+          prices = buildPricesFromRates(data.usd, true);
+          if (prices) {
+            source = 'CDN jsDelivr';
+            if (data.date) source += ' · ' + data.date;
+          }
+        }
+      } catch(e) { console.warn('CDN intento falló:', e.message); }
+    }
   }
 
-  // FUENTE B: corsproxy.io + open.er-api.com
+  // FUENTE C: proxy + open.er-api
   if (!prices) {
     try {
       const proxied = 'https://corsproxy.io/?' + encodeURIComponent('https://open.er-api.com/v6/latest/USD');
       const data = await tryFetch(proxied);
       if (data && data.rates) {
         prices = buildPricesFromRates(data.rates, false);
-        if (prices) source = 'Open ER-API (proxy)';
+        if (prices) source = 'Open ER-API';
       }
     } catch(e) { console.warn('CorsProxy falló:', e.message); }
-  }
-
-  // FUENTE C: corsproxy.io + frankfurter
-  if (!prices) {
-    try {
-      const proxied = 'https://corsproxy.io/?' + encodeURIComponent('https://api.frankfurter.app/latest?from=USD');
-      const data = await tryFetch(proxied);
-      if (data && data.rates) {
-        prices = buildPricesFromRates(data.rates, false);
-        if (prices) source = 'Frankfurter (proxy)';
-      }
-    } catch(e) { console.warn('Frankfurter proxy falló:', e.message); }
   }
 
   if (!prices) {
@@ -1137,15 +1145,35 @@ async function fetchAll() {
     return;
   }
 
+  // Cargar precios de cierre de "ayer" guardados (para calcular % cambio real)
+  const today = new Date().toISOString().slice(0,10);
+  let dailyOpens = {};
+  try {
+    const stored = JSON.parse(localStorage.getItem('fx_daily_opens') || '{}');
+    // Si el storage es de hoy lo usamos, si es de otro día rotamos
+    if (stored.date === today) {
+      dailyOpens = stored.opens || {};
+    } else {
+      // Es un nuevo día - los precios actuales se convierten en apertura del día
+      // y los anteriores quedan como cierre de ayer (referencia)
+      dailyOpens = {};
+    }
+  } catch(e) { dailyOpens = {}; }
+
   const arr = [];
   for (const p of PAIRS) {
     const sym = p.symbol;
     const price = prices[sym];
     if (!price || isNaN(price)) continue;
 
-    const prevPrice = priceCache[sym] || price;
-    const change    = price - prevPrice;
-    const changePct = prevPrice ? (change / prevPrice) * 100 : 0;
+    // Si no tenemos apertura del día, la guardamos ahora
+    if (!dailyOpens[sym]) {
+      dailyOpens[sym] = price;
+    }
+
+    const dayOpen = dailyOpens[sym];
+    const change    = price - dayOpen;
+    const changePct = dayOpen ? (change / dayOpen) * 100 : 0;
 
     if (!priceHistory[sym]) priceHistory[sym] = [];
     priceHistory[sym].push(price);
@@ -1154,6 +1182,14 @@ async function fetchAll() {
 
     arr.push({ symbol: sym, price, change, changePct });
   }
+
+  // Guardar apertura del día en localStorage para próximas cargas
+  try {
+    localStorage.setItem('fx_daily_opens', JSON.stringify({
+      date: today,
+      opens: dailyOpens
+    }));
+  } catch(e) {}
 
   if (arr.length > 0) {
     renderTable(arr);
