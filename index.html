@@ -271,7 +271,7 @@ footer span{color:var(--accent);}
   </div>
 </header>
 
-<div class="api-banner" id="apiBanner">
+<div class="api-banner hidden" id="apiBanner">
   <label>⚠ TWELVE DATA API KEY:</label>
   <input type="text" class="api-input" id="apiKeyInput" placeholder="Pega tu API Key gratuita de twelvedata.com..."/>
   <button class="api-btn" onclick="setApiKey()">CONECTAR</button>
@@ -414,11 +414,12 @@ const PAIRS=[
   {symbol:'NZD/USD',flags:'🇳🇿🇺🇸'},{symbol:'EUR/GBP',flags:'🇪🇺🇬🇧'},
   {symbol:'EUR/JPY',flags:'🇪🇺🇯🇵'},{symbol:'GBP/JPY',flags:'🇬🇧🇯🇵'},
 ];
-const DEMO_BASE={'EUR/USD':1.08423,'GBP/USD':1.26847,'USD/JPY':149.234,'USD/CHF':0.90341,'AUD/USD':0.64783,'USD/CAD':1.35620,'NZD/USD':0.59814,'EUR/GBP':0.85512,'EUR/JPY':161.834,'GBP/JPY':189.271};
+const DEMO_BASE={'EUR/USD':1.16324,'GBP/USD':1.35180,'USD/JPY':144.820,'USD/CHF':0.82950,'AUD/USD':0.64120,'USD/CAD':1.38450,'NZD/USD':0.59340,'EUR/GBP':0.85990,'EUR/JPY':168.340,'GBP/JPY':195.820};
 const TYPICAL_ATR={'EUR/USD':80,'GBP/USD':110,'USD/JPY':90,'USD/CHF':75,'AUD/USD':65,'USD/CAD':70,'NZD/USD':55,'EUR/GBP':50,'EUR/JPY':130,'GBP/JPY':160};
 const KNOWN_CORR={'EUR/USD':{'EUR/USD':1.00,'GBP/USD':0.85,'USD/JPY':-0.72,'USD/CHF':-0.88,'AUD/USD':0.61,'USD/CAD':-0.55,'NZD/USD':0.58,'EUR/GBP':0.42,'EUR/JPY':0.44,'GBP/JPY':0.31},'GBP/USD':{'EUR/USD':0.85,'GBP/USD':1.00,'USD/JPY':-0.58,'USD/CHF':-0.76,'AUD/USD':0.53,'USD/CAD':-0.48,'NZD/USD':0.51,'EUR/GBP':-0.18,'EUR/JPY':0.38,'GBP/JPY':0.62},'USD/JPY':{'EUR/USD':-0.72,'GBP/USD':-0.58,'USD/JPY':1.00,'USD/CHF':0.65,'AUD/USD':-0.44,'USD/CAD':0.52,'NZD/USD':-0.41,'EUR/GBP':-0.22,'EUR/JPY':0.55,'GBP/JPY':0.70},'USD/CHF':{'EUR/USD':-0.88,'GBP/USD':-0.76,'USD/JPY':0.65,'USD/CHF':1.00,'AUD/USD':-0.57,'USD/CAD':0.49,'NZD/USD':-0.52,'EUR/GBP':-0.31,'EUR/JPY':-0.38,'GBP/JPY':-0.28},'AUD/USD':{'EUR/USD':0.61,'GBP/USD':0.53,'USD/JPY':-0.44,'USD/CHF':-0.57,'AUD/USD':1.00,'USD/CAD':-0.62,'NZD/USD':0.91,'EUR/GBP':0.18,'EUR/JPY':0.29,'GBP/JPY':0.24},'USD/CAD':{'EUR/USD':-0.55,'GBP/USD':-0.48,'USD/JPY':0.52,'USD/CHF':0.49,'AUD/USD':-0.62,'USD/CAD':1.00,'NZD/USD':-0.58,'EUR/GBP':-0.15,'EUR/JPY':-0.24,'GBP/JPY':-0.19},'NZD/USD':{'EUR/USD':0.58,'GBP/USD':0.51,'USD/JPY':-0.41,'USD/CHF':-0.52,'AUD/USD':0.91,'USD/CAD':-0.58,'NZD/USD':1.00,'EUR/GBP':0.14,'EUR/JPY':0.26,'GBP/JPY':0.22},'EUR/GBP':{'EUR/USD':0.42,'GBP/USD':-0.18,'USD/JPY':-0.22,'USD/CHF':-0.31,'AUD/USD':0.18,'USD/CAD':-0.15,'NZD/USD':0.14,'EUR/GBP':1.00,'EUR/JPY':0.35,'GBP/JPY':-0.28},'EUR/JPY':{'EUR/USD':0.44,'GBP/USD':0.38,'USD/JPY':0.55,'USD/CHF':-0.38,'AUD/USD':0.29,'USD/CAD':-0.24,'NZD/USD':0.26,'EUR/GBP':0.35,'EUR/JPY':1.00,'GBP/JPY':0.88},'GBP/JPY':{'EUR/USD':0.31,'GBP/USD':0.62,'USD/JPY':0.70,'USD/CHF':-0.28,'AUD/USD':0.24,'USD/CAD':-0.19,'NZD/USD':0.22,'EUR/GBP':-0.28,'EUR/JPY':0.88,'GBP/JPY':1.00}};
 
-let API_KEY=localStorage.getItem('fx_api_key')||'';
+let API_KEY='1604219f133e4f99bc506159dce743f0';
+localStorage.setItem('fx_api_key', API_KEY);
 let priceCache={}, priceHistory={}, lastData=[];
 const REFRESH_MS=60000;
 
