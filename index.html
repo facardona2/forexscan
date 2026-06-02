@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FOREXSCAN v5.2 — Scanner FX Profesional</title>
+<title>FOREXSCAN v5.3 — Scanner FX Profesional</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -353,7 +353,7 @@ footer span{color:var(--accent);}
       <div class="logo-icon">FX</div>
       <div>
         <div class="logo-text">FOREX<span>SCAN</span></div>
-        <div class="logo-sub">v5.2 · CAMBIO REAL + PRECIOS LIVE</div>
+        <div class="logo-sub">v5.3 · TRADINGVIEW LIVE FEED</div>
       </div>
     </div>
     <div class="session-bar">
@@ -552,7 +552,7 @@ footer span{color:var(--accent);}
 
 <div class="toast-stack" id="toastStack"></div>
 <footer>
-  FOREXSCAN v5.2 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
+  FOREXSCAN v5.3 · Datos via <span>TwelveData API</span> · Solo informativo, no es asesoría financiera · UTC · Refresh 60s
 </footer>
 </div>
 
@@ -1086,27 +1086,76 @@ async function tryFetch(url) {
   return Promise.race([fetchPromise, timeoutPromise]);
 }
 
+// ─── TRADINGVIEW SCANNER ENDPOINT ────────────────────────────
+// Endpoint público de TradingView que devuelve precios REAL-TIME
+// Mismos datos que ves en tradingview.com, gratis, sin clave
+async function fetchFromTradingViewScanner() {
+  const url = 'https://scanner.tradingview.com/forex/scan';
+  const body = {
+    symbols: {
+      tickers: PAIRS.map(p => 'FX:' + p.symbol.replace('/', '')),
+      query: { types: [] }
+    },
+    columns: ['name', 'close', 'change', 'change_abs', 'high', 'low', 'open']
+  };
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    mode: 'cors',
+    cache: 'no-store'
+  });
+  if (!resp.ok) throw new Error('TV scanner HTTP ' + resp.status);
+  const data = await resp.json();
+  if (!data || !data.data) throw new Error('TV scanner: respuesta vacía');
+
+  const result = {};
+  const dailyOpens = {};
+  data.data.forEach(item => {
+    // item.d = [name, close, change%, change_abs, high, low, open]
+    const tvSym = (item.s || '').replace('FX:', '');
+    // Match back to our format
+    const ourSym = PAIRS.find(p => p.symbol.replace('/', '') === tvSym)?.symbol;
+    if (!ourSym || !item.d) return;
+    const [, close, changePct, , , , open] = item.d;
+    if (close && !isNaN(close)) {
+      result[ourSym] = parseFloat(close);
+      if (open) dailyOpens[ourSym] = parseFloat(open);
+    }
+  });
+  return { prices: result, opens: dailyOpens };
+}
+
 async function fetchAll() {
   let prices = null;
+  let tvOpens = null;
   let source = '';
 
-  // NOTA IMPORTANTE: Las APIs gratuitas de Forex tienen retraso de 12-24h.
-  // Los precios REALES TIEMPO REAL están en la cinta de TradingView arriba.
-  // Esta tabla usa datos diarios del BCE para análisis ICT/CRT (tendencia, niveles).
-
-  // FUENTE A: Frankfurter (BCE Europa, datos oficiales día)
+  // FUENTE A: TradingView Scanner — PRECIOS REAL-TIME REALES
   try {
-    const data = await tryFetch('https://api.frankfurter.app/latest?from=USD');
-    if (data && data.rates) {
-      prices = buildPricesFromRates(data.rates, false);
-      if (prices) {
-        source = 'Frankfurter (BCE)';
-        if (data.date) source += ' · ' + data.date;
-      }
+    const tvData = await fetchFromTradingViewScanner();
+    if (tvData.prices && Object.keys(tvData.prices).length > 0) {
+      prices = tvData.prices;
+      tvOpens = tvData.opens;
+      source = 'TradingView LIVE';
     }
-  } catch(e) { console.warn('Frankfurter directo falló:', e.message); }
+  } catch(e) { console.warn('TradingView Scanner falló:', e.message); }
 
-  // FUENTE B: jsDelivr CDN como respaldo
+  // FUENTE B: Frankfurter como respaldo (datos diarios BCE)
+  if (!prices) {
+    try {
+      const data = await tryFetch('https://api.frankfurter.app/latest?from=USD');
+      if (data && data.rates) {
+        prices = buildPricesFromRates(data.rates, false);
+        if (prices) {
+          source = 'Frankfurter (BCE)';
+          if (data.date) source += ' · ' + data.date;
+        }
+      }
+    } catch(e) { console.warn('Frankfurter falló:', e.message); }
+  }
+
+  // FUENTE C: jsDelivr CDN último respaldo
   if (!prices) {
     const cdnUrls = [
       'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
@@ -1118,25 +1167,10 @@ async function fetchAll() {
         const data = await tryFetch(url);
         if (data && data.usd) {
           prices = buildPricesFromRates(data.usd, true);
-          if (prices) {
-            source = 'CDN jsDelivr';
-            if (data.date) source += ' · ' + data.date;
-          }
+          if (prices) source = 'CDN jsDelivr';
         }
-      } catch(e) { console.warn('CDN intento falló:', e.message); }
+      } catch(e) { console.warn('CDN falló:', e.message); }
     }
-  }
-
-  // FUENTE C: proxy + open.er-api
-  if (!prices) {
-    try {
-      const proxied = 'https://corsproxy.io/?' + encodeURIComponent('https://open.er-api.com/v6/latest/USD');
-      const data = await tryFetch(proxied);
-      if (data && data.rates) {
-        prices = buildPricesFromRates(data.rates, false);
-        if (prices) source = 'Open ER-API';
-      }
-    } catch(e) { console.warn('CorsProxy falló:', e.message); }
   }
 
   if (!prices) {
@@ -1145,20 +1179,22 @@ async function fetchAll() {
     return;
   }
 
-  // Cargar precios de cierre de "ayer" guardados (para calcular % cambio real)
+  // Para el cambio del día usar las aperturas reales de TradingView si están disponibles
   const today = new Date().toISOString().slice(0,10);
   let dailyOpens = {};
-  try {
-    const stored = JSON.parse(localStorage.getItem('fx_daily_opens') || '{}');
-    // Si el storage es de hoy lo usamos, si es de otro día rotamos
-    if (stored.date === today) {
-      dailyOpens = stored.opens || {};
-    } else {
-      // Es un nuevo día - los precios actuales se convierten en apertura del día
-      // y los anteriores quedan como cierre de ayer (referencia)
-      dailyOpens = {};
-    }
-  } catch(e) { dailyOpens = {}; }
+
+  if (tvOpens && Object.keys(tvOpens).length > 0) {
+    // TradingView nos da el OPEN real del día
+    dailyOpens = tvOpens;
+  } else {
+    // Sin TV: usar localStorage para tracking propio
+    try {
+      const stored = JSON.parse(localStorage.getItem('fx_daily_opens') || '{}');
+      if (stored.date === today) {
+        dailyOpens = stored.opens || {};
+      }
+    } catch(e) { dailyOpens = {}; }
+  }
 
   const arr = [];
   for (const p of PAIRS) {
